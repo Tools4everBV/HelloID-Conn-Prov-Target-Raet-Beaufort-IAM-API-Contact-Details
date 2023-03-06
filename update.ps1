@@ -35,8 +35,8 @@ $correlationValue = $aRef # Has to match the value of the unique identifier
 
 #Change mapping here
 $account = [PSCustomObject]@{
-    emailAddress = "" # Empty to clear the field
-    phoneNumber  = "" # Empty to clear the field
+    emailAddress = $p.Accounts.MicrosoftActiveDirectory.mail
+    phoneNumber  = $p.Accounts.MicrosoftActiveDirectory.telephoneNumber
 }
 # Additionally set account properties as required
 $requiredFields = @()
@@ -208,7 +208,6 @@ try {
 
     # Check if required fields are available in account object
     $incompleteAccount = $false
-    $requiredFields = @()
     foreach ($requiredField in $requiredFields) {
         if ($requiredField -notin $account.PsObject.Properties.Name) {
             $incompleteAccount = $true
