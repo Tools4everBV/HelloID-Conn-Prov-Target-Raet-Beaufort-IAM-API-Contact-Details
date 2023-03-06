@@ -208,7 +208,6 @@ try {
 
     # Check if required fields are available in account object
     $incompleteAccount = $false
-    $requiredFields = @()
     foreach ($requiredField in $requiredFields) {
         if ($requiredField -notin $account.PsObject.Properties.Name) {
             $incompleteAccount = $true
