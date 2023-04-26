@@ -1,5 +1,5 @@
 #####################################################
-# HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details-Delete
+# HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details-Update
 #
 # Version: 1.0.0
 #####################################################
