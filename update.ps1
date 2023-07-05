@@ -1,11 +1,12 @@
 #####################################################
 # HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details-Update
 #
-# Version: 1.0.0
+# Version: 1.0.1
 #####################################################
 # Initialize default values
 $c = $configuration | ConvertFrom-Json
 $p = $person | ConvertFrom-Json
+$aRef = $accountReference | ConvertFrom-Json
 $success = $false
 $auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
 
