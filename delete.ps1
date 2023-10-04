@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details-Delete
 #
-# Version: 1.0.1
+# Version: 1.0.2
 #####################################################
 # Initialize default values
 $c = $configuration | ConvertFrom-Json
@@ -421,13 +421,9 @@ finally {
     # Send results
     $result = [PSCustomObject]@{
         Success          = $success
-        AccountReference = $aRef
         AuditLogs        = $auditLogs
         PreviousAccount  = $previousAccount
         Account          = $account
-
-        # Optionally return data for use in other systems
-        ExportData       = $exportData
     }
 
     Write-Output ($result | ConvertTo-Json -Depth 10)  
