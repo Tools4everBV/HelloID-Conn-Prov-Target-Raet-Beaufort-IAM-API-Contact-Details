@@ -33,7 +33,8 @@
 - [Getting help](#getting-help)
 - [HelloID docs](#helloid-docs)
   
----
+## Requirements
+- The mutations are submitted to Beaufort through the API using the fixed process code IDA. In order for the mutations to be processed automatically, a few checkboxes need to be ticked by the client. The application administrator can do this from the configuration import process screen. The green checkboxes must be ticked for process code IDA. <img src="https://github.com/Tools4everBV/HelloID-Conn-Prov-Target-Raet-Beaufort-IAM-API-Contact-Details/blob/feat-add-remarks/Required%20config.png">
 
 ## Introduction
 This connector allows you to write back contact details to a person in Raet Beaufort using the IAM API.
@@ -88,8 +89,9 @@ The following settings are required to run the source import.
 - ClientID, ClientSecret and tenantID to authenticate with the IAM API of Raet Beaufort. Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
 
 ### Remarks
- - Currently, only the 'Business Email Address' and 'Business Phone Number' fields can be updated, no other fields are (currently) supported.
+- Currently, only the 'Business Email Address' and 'Business Phone Number' fields can be updated, no other fields are (currently) supported.
     > When the value in Raet Beaufort equals the value in HelloID, the action will be skipped (no update will take place).
+- The endpoint operates asynchronously. The data is first stored and internally verified before being submitted to BO4. To track the processing in the API, a ticketId is returned. The ticket ID must be used to check the status of the API call. Within the API, various checks are performed. For example, it checks that the email address matches the format aaaa@bbbb.xxx. It also checks that the phone number does not contain alphanumeric values. However, it does support phone numbers like "035-1234567".
 
 ## Getting help
 > _For more information on how to configure a HelloID PowerShell connector, please refer to our [documentation](https://docs.helloid.com/hc/en-us/articles/360012558020-Configure-a-custom-PowerShell-target-system) pages_
