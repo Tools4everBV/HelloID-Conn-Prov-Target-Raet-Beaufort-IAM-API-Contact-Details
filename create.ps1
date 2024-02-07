@@ -173,9 +173,6 @@ try {
         if ([string]::IsNullOrEmpty($($correlationValue))) {
             throw 'Correlation is enabled but [accountFieldValue] is empty. Please make sure it is correctly mapped'
         }
-
-        # Verify if a user must be either [created ] or just [correlated]
-        $correlatedAccount = 'userInfo'
     }
     else {
         throw 'Enabling correlation is mandatory'

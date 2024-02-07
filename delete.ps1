@@ -206,7 +206,6 @@ try {
         }
         $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
 
-
         if ($propertiesChanged) {
             $updateAction = 'Update'
             $dryRunMessage = "Account property(s) required to update: $($propertiesChanged.Name -join ', ')"
@@ -229,7 +228,7 @@ try {
 
     # Process
     if (-not($actionContext.DryRun -eq $true)) {
-        switch ($action) {
+        switch ($updateAction) {
             'Update' {
                 Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 

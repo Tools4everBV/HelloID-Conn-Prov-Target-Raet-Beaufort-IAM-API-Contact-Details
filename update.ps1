@@ -222,7 +222,6 @@ try {
             $dryRunMessage = "Raet Beaufort employee account for: [$($personContext.Person.DisplayName)] not found. Possibly deleted."
         }
 
-
         # Add a message and the result of each of the validations showing what will happen during enforcement
         if ($actionContext.DryRun -eq $true) {
             Write-Verbose "[DryRun] $dryRunMessage" -Verbose
