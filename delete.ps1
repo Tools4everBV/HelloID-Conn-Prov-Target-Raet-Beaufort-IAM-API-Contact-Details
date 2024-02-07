@@ -1,46 +1,14 @@
-#####################################################
+##################################################
 # HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details-Delete
-#
-# Version: 1.0.2
-#####################################################
-# Initialize default values
-$c = $configuration | ConvertFrom-Json
-$p = $person | ConvertFrom-Json
-$aRef = $accountReference | ConvertFrom-Json
-$success = $false
-$auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
+# PowerShell V2
+##################################################
 
-# Set TLS to accept TLS, TLS 1.1 and TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
-
-# Set debug logging
-switch ($($c.isDebug)) {
-    $true { $VerbosePreference = 'Continue' }
-    $false { $VerbosePreference = 'SilentlyContinue' }
-}
-$InformationPreference = "Continue"
-$WarningPreference = "Continue"
+# Enable TLS1.2
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
 
 # Used to connect to RAET IAM API endpoints
 $Script:AuthenticationUri = "https://connect.visma.com/connect/token"
 $Script:BaseUri = "https://api.youforce.com"
-
-$clientId = $c.clientid
-$clientSecret = $c.clientsecret
-$TenantId = $c.tenantid
-$updateOnCorrelate = $c.updateOnCorrelate
-
-# Correlation values
-$correlationProperty = "personCode" # Has to match the name of the unique identifier
-$correlationValue = $aRef # Has to match the value of the unique identifier
-
-#Change mapping here
-$account = [PSCustomObject]@{
-    emailAddress = "" # Empty to clear the field
-    phoneNumber  = "" # Empty to clear the field
-}
-# Additionally set account properties as required
-$requiredFields = @()
 
 #region functions
 function Resolve-HTTPError {
@@ -173,11 +141,11 @@ function New-RaetSession {
 
         Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
 
-        $auditLogs.Add([PSCustomObject]@{
-                # Action  = "" # Optional
+        $outputContext.AuditLogs.Add([PSCustomObject]@{
                 Message = "Error creating Access Token at uri ''$($splatAccessTokenParams.Uri)'. Please check credentials. Error Message: $($errorMessage.AuditErrorMessage)"
                 IsError = $true
-            })     
+            })
+        $PSCmdlet.ThrowTerminatingError($_)     
     }
 }
 
@@ -192,239 +160,144 @@ function Confirm-AccessTokenIsValid {
 #endregion functions
 
 try {
-    # Check if required fields are available for correlation
-    $incompleteCorrelationValues = $false
-    if ([String]::IsNullOrEmpty($correlationProperty)) {
-        $incompleteCorrelationValues = $true
-        Write-Warning "Required correlation field 'correlationProperty' has a null or empty value"
-    }
-    if ([String]::IsNullOrEmpty($correlationValue)) {
-        $incompleteCorrelationValues = $true
-        Write-Warning "Required correlation field 'correlationValue' has a null or empty value"
-    }
-    
-    if ($incompleteCorrelationValues -eq $true) {
-        throw "Correlation values incomplete, cannot continue. CorrelationProperty = '$correlationProperty', CorrelationValue = '$correlationValue'"
+    # Verify if [aRef] has a value
+    if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
+        throw 'The account reference could not be found'
     }
 
-    # Check if required fields are available in account object
-    $incompleteAccount = $false
-    foreach ($requiredField in $requiredFields) {
-        if ($requiredField -notin $account.PsObject.Properties.Name) {
-            $incompleteAccount = $true
-            Write-Warning "Required account object field '$requiredField' is missing"
+    $accessTokenValid = Confirm-AccessTokenIsValid
+    if ($true -ne $accessTokenValid) {
+        $splatRaetSession = @{
+            ClientId     = $actionContext.Configuration.clientId
+            ClientSecret = $actionContext.Configuration.clientSecret
+            TenantId     = $actionContext.Configuration.tenantId
         }
-
-        if ([String]::IsNullOrEmpty($account.$requiredField)) {
-            $incompleteAccount = $true
-            Write-Warning "Required account object field '$requiredField' has a null or empty value"
-        }
+        New-RaetSession @splatRaetSession
     }
 
-    if ($incompleteAccount -eq $true) {
-        throw "Account object incomplete, cannot continue. Account object: $($account | ConvertTo-Json -Depth 10)"
-    }
+    Write-Verbose "Verifying if a Raet Beaufort employee account for [$($personContext.Person.DisplayName)] exists"
 
-    # Get current account and verify if the action should be either [updated and correlated] or just [correlated]
+    $splatWebRequest = @{
+        Uri             = "$($Script:BaseUri)/iam/v1.0/persons/$($actionContext.References.Account)"
+        Headers         = $Script:AuthenticationHeaders
+        Method          = 'GET'
+        ContentType     = "application/json"
+        UseBasicParsing = $true
+    }
     try {
-        $accessTokenValid = Confirm-AccessTokenIsValid
-        if ($true -ne $accessTokenValid) {
-            New-RaetSession -ClientId $clientId -ClientSecret $clientSecret -TenantId $tenantId
-        }
-
-        Write-Verbose "Querying Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-
-        $splatWebRequest = @{
-            Uri             = "$($Script:BaseUri)/iam/v1.0/persons/$($correlationValue)"
-            Headers         = $Script:AuthenticationHeaders
-            Method          = 'GET'
-            ContentType     = "application/json"
-            UseBasicParsing = $true
-        }
-        $currentAccount = $null
-        $currentAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
-
-        if ($null -ne $currentAccount.id) {
-            Write-Verbose "Successfully found Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-        } 
-        else {
-            throw "No employee found in Raet Beaufort with $($correlationProperty) '$($correlationValue)'"
-        }
-
-        if ($updateOnCorrelate -eq $true) {
-            $action = 'Update-Correlate'
-        
-            $propertiesChanged = $null
-                
-            # Get value of current Business Email Address
-            if ($null -ne $currentAccount.emailAddresses) {
-                $businessEmailAddress = $currentAccount.emailAddresses | Where-Object { $_.type -eq "Business" }
-                $businessEmailAddressValue = $businessEmailAddress.address
-            }
-
-            # Get value of current Business Phonenumber
-            if ($null -ne $currentAccount.phoneNumbers) {
-                $businessPhoneNumber = $currentAccount.phoneNumbers | Where-Object { $_.type -eq "Business" }
-                $businessPhoneNumberValue = $businessPhoneNumber.number
-            }
-
-            # Retrieve current account data for properties to be updated
-            $previousAccount = [PSCustomObject]@{
-                'emailAddress' = $businessEmailAddressValue
-                'phoneNumber'  = $businessPhoneNumberValue
-            }
-
-            $splatCompareProperties = @{
-                ReferenceObject  = @($previousAccount.PSObject.Properties)
-                DifferenceObject = @($account.PSObject.Properties)
-            }
-            $propertiesChanged = (Compare-Object @splatCompareProperties -PassThru).Where( { $_.SideIndicator -eq '=>' })
-
-            if ($propertiesChanged) {
-                Write-Verbose "Account property(s) required to update: [$($propertiesChanged.name -join ",")]"
-
-                foreach ($changedProperty in $propertiesChanged) {
-                    Write-Verbose "Updating field $($changedProperty.name) '$($previousAccount.($changedProperty.name))' with new value '$($account.($changedProperty.name))'"
-                }
-
-                $updateAction = 'Update'
-            }
-            else {
-                $updateAction = 'NoChanges'
-            }
-        }
-        else {
-            $action = 'Correlate'
-        }
+        $correlatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
     }
     catch {
         $ex = $PSItem
         $errorMessage = Get-ErrorMessage -ErrorObject $ex
-    
         Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
 
-        $auditLogs.Add([PSCustomObject]@{
-                # Action  = "" # Optional
-                Message = "Error querying Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Error Message: $($errorMessage.AuditErrorMessage)"
-                IsError = $true
-            })
+        if ($errorMessage.AuditErrorMessage -Like "*Not Found*" -or $errorMessage.AuditErrorMessage -Like "No employee found in Raet Beaufort with $($correlationProperty) '$($correlationValue)'") {
+            write-verbose "No employee found in Raet Beaufort with personCode [$($actionContext.References.Account)]. Possibly already deleted."
+            $correlatedAccount = $null
+        }
+        else {
+            throw $_
+        }
+    }
+    
+    $outputContext.PreviousData = $correlatedAccount
+
+    if ($null -ne $correlatedAccount) {
+        $splatCompareProperties = @{
+            ReferenceObject  = $correlatedAccount.PSObject.Properties
+            DifferenceObject = $actionContext.Data.PSObject.Properties
+        }
+        $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
+
+
+        if ($propertiesChanged) {
+            $updateAction = 'Update'
+            $dryRunMessage = "Account property(s) required to update: $($propertiesChanged.Name -join ', ')"
+        }
+        else {
+            $updateAction = 'NoChanges'
+            $dryRunMessage = 'No changes will be made to the account during enforcement'
+        }
+        $action = 'DeleteAccount'
+    }
+    else {
+        $action = 'NotFound'
+        $dryRunMessage = "Raet Beaufort employee account: [$($actionContext.References.Account)] for person: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
     }
 
-    if ($null -ne $currentAccount.id) {
-        # Either [update and correlate] or just [correlate]
+    # Add a message and the result of each of the validations showing what will happen during enforcement
+    if ($actionContext.DryRun -eq $true) {
+        Write-Verbose "[DryRun] $dryRunMessage" -Verbose
+    }
+
+    # Process
+    if (-not($actionContext.DryRun -eq $true)) {
         switch ($action) {
-            'Update-Correlate' {
-                Write-Verbose "Updating and correlating Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-    
-                switch ($updateAction) {
-                    'Update' {
-                        try {
-                            $body = ($account | ConvertTo-Json -Depth 10)
-                            $splatWebRequest = @{
-                                Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($correlationValue)"
-                                Headers         = $Script:AuthenticationHeaders
-                                Method          = 'POST'
-                                Body            = ([System.Text.Encoding]::UTF8.GetBytes($body))
-                                ContentType     = "application/json;charset=utf-8"
-                                UseBasicParsing = $true
-                            }
-      
-                            Write-Verbose "Updating Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Account object: $($account | ConvertTo-Json -Depth 10)"
-                            
-                            if (-not($dryRun -eq $true)) {
-                                $updatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
+            'Update' {
+                Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
-                                $auditLogs.Add([PSCustomObject]@{
-                                        # Action  = "" # Optional
-                                        Message = "Successfully updated Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-                                        IsError = $false
-                                    })
-                            }
-                            else {
-                                Write-Warning "DryRun: Would update Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Account object: $($account | ConvertTo-Json -Depth 10)"
-                            }
+                $body = ($actionContext.Data | ConvertTo-Json -Depth 10)
+                # Not sure if we need to use account (actionContext.Data) or something with properties changed:
+                # $body = ($propertiesChanged | ConvertTo-Json -Depth 10)
 
-                            break
-                        }
-                        catch {
-                            $ex = $PSItem
-                            $errorMessage = Get-ErrorMessage -ErrorObject $ex
-                    
-                            Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
-                
-                            $auditLogs.Add([PSCustomObject]@{
-                                    # Action  = "" # Optional
-                                    Message = "Error updating Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Error Message: $($errorMessage.AuditErrorMessage) Account object: $($account | ConvertTo-Json -Depth 10)"
-                                    IsError = $true
-                                })
-                        }
-                    }
-                    'NoChanges' {
-                        Write-Verbose "No changes to Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-    
-                        if (-not($dryRun -eq $true)) {
-                            $auditLogs.Add([PSCustomObject]@{
-                                    # Action  = "" # Optional
-                                    Message = "Successfully updated Raet Beaufort employee with $($correlationProperty) '$($correlationValue)' (No changes needed)"
-                                    IsError = $false
-                                })
-                        }
-                        else {
-                            Write-Warning "DryRun: No changes to Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-                        }                  
-
-                        break
-                    }
+                $splatWebRequest = @{
+                    Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($actionContext.References.Account)"
+                    Headers         = $Script:AuthenticationHeaders
+                    Method          = 'POST'
+                    Body            = ([System.Text.Encoding]::UTF8.GetBytes($body))
+                    ContentType     = "application/json;charset=utf-8"
+                    UseBasicParsing = $true
                 }
 
-                # Set aRef object for use in futher actions
-                $aRef = $currentAccount.personCode
+                $updatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
 
-                # Define ExportData with account fields and correlation property 
-                $exportData = $account.PsObject.Copy()
-                $exportData | Add-Member -MemberType NoteProperty -Name $correlationProperty -Value $correlationValue -Force
+                # Not sure if $updatedAccount gives back the result you updated. Else return $actionContext.Data
+                # $outputContext.Data = $actionContext.Data
+                $outputContext.Data = $updatedAccount
 
+                $outputContext.Success = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Action  = $action
+                        Message = "Delete account was successful, Account property(s) updated: [$($propertiesChanged.name -join ',')]"
+                        IsError = $false
+                    })
                 break
             }
-            'Correlate' {
-                Write-Verbose "Correlating to Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
 
-                if (-not($dryRun -eq $true)) {
-                    $auditLogs.Add([PSCustomObject]@{
-                            # Action  = "" # Optional
-                            Message = "Successfully correlated to Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-                            IsError = $false
-                        })
-                }
-                else {
-                    Write-Warning "DryRun: Would correlate to Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'"
-                }
+            'NoChanges' {
+                Write-Verbose "No changes to Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
-                # Set aRef object for use in futher actions
-                $aRef = $currentAccount.personCode
+                $outputContext.Success = $true
 
-                # Define ExportData with account fields and correlation property 
-                $exportData = $previousAccount.PsObject.Copy()
-                $exportData | Add-Member -MemberType NoteProperty -Name $correlationProperty -Value $correlationValue -Force
+                # Remove this AuditLog?
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Message = 'No changes will be made to the account during enforcement'
+                        IsError = $false
+                    })
+                break
+            }
 
+            'NotFound' {
+                $outputContext.Success = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Message = "Raet Beaufort employee account [$($actionContext.References.Account)] for: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
+                        IsError = $false
+                    })
                 break
             }
         }
     }
 }
-finally {
-    # Check if auditLogs contains errors, if no errors are found, set success to true
-    if (-NOT($auditLogs.IsError -contains $true)) {
-        $success = $true
-    }
+catch {
+    $outputContext.Success = $false
+    $ex = $PSItem
+    $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
-    # Send results
-    $result = [PSCustomObject]@{
-        Success          = $success
-        AuditLogs        = $auditLogs
-        PreviousAccount  = $previousAccount
-        Account          = $account
-    }
-
-    Write-Output ($result | ConvertTo-Json -Depth 10)  
+    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
+    $auditMessage = "Could not update Raet Beaufort employee updateOnUpdate account. Error Message: $($errorMessage.AuditErrorMessage)"
+    $outputContext.AuditLogs.Add([PSCustomObject]@{
+            Message = $auditMessage
+            IsError = $true
+        })
 }
