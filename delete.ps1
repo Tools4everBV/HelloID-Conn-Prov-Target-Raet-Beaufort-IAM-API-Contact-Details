@@ -141,11 +141,7 @@ function New-RaetSession {
 
         Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
 
-        $outputContext.AuditLogs.Add([PSCustomObject]@{
-                Message = "Error creating Access Token at uri ''$($splatAccessTokenParams.Uri)'. Please check credentials. Error Message: $($errorMessage.AuditErrorMessage)"
-                IsError = $true
-            })
-        $PSCmdlet.ThrowTerminatingError($_)     
+        throw "Error creating Access Token at uri ''$($splatAccessTokenParams.Uri)'. Please check credentials. Error Message: $($errorMessage.AuditErrorMessage)"    
     }
 }
 

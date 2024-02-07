@@ -140,12 +140,8 @@ function New-RaetSession {
         $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
         Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
-
-        $outputContext.AuditLogs.Add([PSCustomObject]@{
-                Message = "Error creating Access Token at uri ''$($splatAccessTokenParams.Uri)'. Please check credentials. Error Message: $($errorMessage.AuditErrorMessage)"
-                IsError = $true
-            })
-        $PSCmdlet.ThrowTerminatingError($_)     
+   
+        throw "Error creating Access Token at uri ''$($splatAccessTokenParams.Uri)'. Please check credentials. Error Message: $($errorMessage.AuditErrorMessage)"
     }
 }
 
@@ -247,7 +243,7 @@ catch {
 
     Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
 
-    $auditLogs.Add([PSCustomObject]@{
+    $outputContext.AuditLogs.Add([PSCustomObject]@{
             Message = "Error updating Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Error Message: $($errorMessage.AuditErrorMessage)"
             IsError = $true
         })
