@@ -168,8 +168,8 @@ try {
 
     # Validate correlation configuration
     if ($actionContext.CorrelationConfiguration.Enabled) {
-        $correlationField = $actionContext.CorrelationConfiguration.accountField
-        $correlationValue = $actionContext.CorrelationConfiguration.accountFieldValue
+        $correlationField = $actionContext.CorrelationConfiguration.PersonField
+        $correlationValue = $actionContext.CorrelationConfiguration.PersonFieldValue
 
         if ([string]::IsNullOrEmpty($($correlationField))) {
             throw 'Correlation is enabled but not configured correctly'
@@ -251,9 +251,4 @@ catch {
             Message = "Error updating Raet Beaufort employee with $($correlationProperty) '$($correlationValue)'. Error Message: $($errorMessage.AuditErrorMessage)"
             IsError = $true
         })
-}
-finally {
-    if ($outputContext.Data -eq $null) {
-        $outputContext.Data = $actionContext.Data
-    }
 }
