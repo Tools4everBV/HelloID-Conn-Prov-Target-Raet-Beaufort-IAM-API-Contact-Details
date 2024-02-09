@@ -286,7 +286,7 @@ try {
         }
     }
     else {
-        Write-Verbose "No changes to Raet Beaufort employee updateOnUpdate is [$(actionContext.Configuration.updateOnUpdate)]"
+        Write-Verbose "No changes to Raet Beaufort employee updateOnUpdate is [$($actionContext.Configuration.updateOnUpdate)]"
         $outputContext.Success = $true
     }
 }
