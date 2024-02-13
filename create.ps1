@@ -204,7 +204,7 @@ try {
     }
     else {
         $action = 'CorrelateAccount'
-        $outputContext.AccountReference = $correlatedAccount.id
+        $outputContext.AccountReference = $correlatedAccount.personCode
     }
 
     # Add a message and the result of each of the validations showing what will happen during enforcement

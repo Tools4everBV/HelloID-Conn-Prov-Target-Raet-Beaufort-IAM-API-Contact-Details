@@ -199,11 +199,43 @@ try {
     
     $outputContext.PreviousData = $correlatedAccount
 
-    if ($null -ne $correlatedAccount) {
+    # Always compare the account against the current account in target system
+    if ($null -ne $correlatedAccount.id) {
+
+        $propertiesChanged = $null
+
+        # Get value of current Business Email Address
+        if ($null -ne $correlatedAccount.emailAddresses) {
+            $businessEmailAddress = $correlatedAccount.emailAddresses | Where-Object { $_.type -eq "Business" }
+            $businessEmailAddressValue = $businessEmailAddress.address
+        }
+
+        
+        # Get value of current Business Phonenumber
+        if ($null -ne $correlatedAccount.phoneNumbers) {
+            $businessPhoneNumber = $correlatedAccount.phoneNumbers | Where-Object { $_.type -eq "Business" }
+            $businessPhoneNumberValue = $businessPhoneNumber.number
+        }
+
+        # Retrieve current account data for properties to be updated
+        $previousAccount = [PSCustomObject]@{
+            'emailAddress' = $businessEmailAddressValue
+            'phoneNumber'  = $businessPhoneNumberValue
+        }
+
+        if (-not($actionContext.Data.PSObject.Properties.Name -Contains 'emailAddress')) {
+            $previousAccount.PSObject.Properties.Remove('emailAddress')
+        }
+
+        if (-not($actionContext.Data.PSObject.Properties.Name -Contains 'phoneNumber')) {
+            $previousAccount.PSObject.Properties.Remove('phoneNumber')
+        }
+
         $splatCompareProperties = @{
-            ReferenceObject  = $correlatedAccount.PSObject.Properties
+            ReferenceObject  = $previousAccount.PSObject.Properties
             DifferenceObject = $actionContext.Data.PSObject.Properties
         }
+        
         $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
 
         if ($propertiesChanged) {
@@ -233,8 +265,6 @@ try {
                 Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
                 $body = ($actionContext.Data | ConvertTo-Json -Depth 10)
-                # Not sure if we need to use account (actionContext.Data) or something with properties changed:
-                # $body = ($propertiesChanged | ConvertTo-Json -Depth 10)
 
                 $splatWebRequest = @{
                     Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($actionContext.References.Account)"
@@ -247,14 +277,10 @@ try {
 
                 $updatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
 
-                # Not sure if $updatedAccount gives back the result you updated. Else return $actionContext.Data
-                # $outputContext.Data = $actionContext.Data
-                $outputContext.Data = $updatedAccount
-
                 $outputContext.Success = $true
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Action  = $action
-                        Message = "Delete account was successful, Account property(s) updated: [$($propertiesChanged.name -join ',')]"
+                        Message = "Update account was successful, Account property(s) updated: [$($propertiesChanged.name -join ',')]"
                         IsError = $false
                     })
                 break
@@ -265,7 +291,6 @@ try {
 
                 $outputContext.Success = $true
 
-                # Remove this AuditLog?
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Message = 'No changes will be made to the account during enforcement'
                         IsError = $false
