@@ -89,7 +89,7 @@ To properly setup the correlation:
 
 #### Field mapping
 
-The field mapping can be imported by using the [_fieldMapping.json_](.\fieldMapping.json) file.
+The field mapping can be imported by using the [_fieldMapping.json_](./fieldMapping.json) file.
 
 > [!NOTE]
 phoneNumber is not added to the _fieldMapping.json_ because it is realy used in combination with HelloID Provisioning.
