@@ -106,6 +106,8 @@ The following settings are required to connect to the API.
 | UpdateOnUpdate | If you also want to update the user on a update account                                                                                                          |           |
 
 ### Prerequisites
+> [!IMPORTANT]
+> The latest version of this connector requires **new api credentials**. To get these, please follow the [Visma documentation](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059) on how to register the App and grant access to client data.  
 - Authorized Visma Developers account in order to request and receive the API credentials in the [Visma Developer portal](https://oauth.developers.visma.com). Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
 - ClientID, ClientSecret and tenantID to authenticate with the IAM API of Raet Beaufort. Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
 
