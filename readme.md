@@ -1,12 +1,6 @@
 
 # HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details
 
-> [!WARNING]
-> This script is not tested. Only dryCoded! fieldMapping.json will be added after the release.
-
-> [!WARNING]
-> This script is for the new powershell connector. Make sure to use the mapping and correlation keys like mentionded in this readme. For more information, please read our [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems.html).
-
 > [!IMPORTANT]
 > This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
@@ -95,7 +89,7 @@ To properly setup the correlation:
 
 #### Field mapping
 
-The field mapping can be imported by using the _fieldMapping.json_ file.
+The field mapping can be imported by using the [_fieldMapping.json_](.\fieldMapping.json) file.
 
 > [!NOTE]
 phoneNumber is not added to the _fieldMapping.json_ because it is realy used in combination with HelloID Provisioning.
