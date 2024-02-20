@@ -161,6 +161,12 @@ try {
         throw 'The account reference could not be found'
     }
 
+    $account = $actionContext.Data
+    # Remove personCode field because only used for export data
+    if ($account.PSObject.Properties.Name -Contains 'personCode') {
+        $account.PSObject.Properties.Remove('personCode')
+    }
+
     $accessTokenValid = Confirm-AccessTokenIsValid
     if ($true -ne $accessTokenValid) {
         $splatRaetSession = @{
@@ -196,8 +202,7 @@ try {
             throw $_
         }
     }
-    
-    $outputContext.PreviousData = $correlatedAccount
+    $outputContext.PreviousData.personCode = $correlatedAccount.personCode
 
     # Always compare the account against the current account in target system
     if ($null -ne $correlatedAccount.id) {
@@ -226,14 +231,20 @@ try {
         if (-not($actionContext.Data.PSObject.Properties.Name -Contains 'emailAddress')) {
             $previousAccount.PSObject.Properties.Remove('emailAddress')
         }
+        else {
+            $outputContext.PreviousData.emailAddress = $previousAccount.emailAddress
+        }
 
         if (-not($actionContext.Data.PSObject.Properties.Name -Contains 'phoneNumber')) {
             $previousAccount.PSObject.Properties.Remove('phoneNumber')
         }
+        else {
+            $outputContext.PreviousData.phoneNumber = $previousAccount.phoneNumber
+        }
 
         $splatCompareProperties = @{
             ReferenceObject  = $previousAccount.PSObject.Properties
-            DifferenceObject = $actionContext.Data.PSObject.Properties
+            DifferenceObject = $account
         }
         
         $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
@@ -264,7 +275,7 @@ try {
             'Update' {
                 Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
-                $body = ($actionContext.Data | ConvertTo-Json -Depth 10)
+                $body = ($account | ConvertTo-Json -Depth 10)
 
                 $splatWebRequest = @{
                     Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($actionContext.References.Account)"
@@ -276,6 +287,13 @@ try {
                 }
 
                 $updatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
+                $outputContext.Data.personCode = $updatedAccount.contactDetails.personCode
+                if ($actionContext.Data.PSObject.Properties.Name -Contains 'emailAddress') {
+                    $outputContext.Data.emailAddress = $updatedAccount.contactDetails.emailAddress
+                }
+                if ($actionContext.Data.PSObject.Properties.Name -Contains 'phoneNumber') {
+                    $outputContext.Data.phoneNumber = $updatedAccount.contactDetails.phoneNumber
+                }
 
                 $outputContext.Success = $true
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
@@ -289,8 +307,10 @@ try {
             'NoChanges' {
                 Write-Verbose "No changes to Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
+                $outputContext.Data.personCode = $correlatedAccount.personCode
                 $outputContext.Success = $true
 
+                # Remove this AuditLog?
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Message = 'No changes will be made to the account during enforcement'
                         IsError = $false
