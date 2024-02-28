@@ -32,23 +32,13 @@
         }
     },
     {
-        "key": "updateOnCorrelate",
+        "key": "updateOnUpdate",
         "type": "checkbox",
         "defaultValue": false,
         "templateOptions": {
-            "label": "Update account when correlating",
+            "label": "Update on update",
             "required": false,
-            "description": "When toggled, the account will de updated in the create action (not just correlated), if the mapped data differs from data target system"
-        }
-    },
-    {
-        "key": "isDebug",
-        "type": "checkbox",
-        "defaultValue": false,
-        "templateOptions": {
-            "label": "Toggle debug logging",
-            "description": "When toggled, debug logging will be displayed",
-            "required": false
+            "description": "When toggled, if the mapped data differs from data in Raet Beaufort employee, the Raet Beaufort employee will be updated when a update is triggerd"
         }
     }
 ]
