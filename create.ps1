@@ -6,6 +6,12 @@
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
 
+# Set debug logging
+switch ($($actionContext.Configuration.isDebug)) {
+    $true { $VerbosePreference = 'Continue' }
+    $false { $VerbosePreference = 'SilentlyContinue' }
+}
+
 # Used to connect to RAET IAM API endpoints
 $Script:AuthenticationUri = "https://connect.visma.com/connect/token"
 $Script:BaseUri = "https://api.youforce.com"
@@ -209,7 +215,7 @@ try {
 
     # Add a message and the result of each of the validations showing what will happen during enforcement
     if ($actionContext.DryRun -eq $true) {
-        Write-Verbose "[DryRun] $action Raet Beaufort employee account for: [$($personContext.Person.DisplayName)], will be executed during enforcement" -Verbose
+        Write-Information "[DryRun] $action Raet Beaufort employee account for: [$($personContext.Person.DisplayName)], will be executed during enforcement"
     }
 
     # Process
