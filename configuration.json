@@ -32,13 +32,13 @@
         }
     },
     {
-        "key": "updateOnUpdate",
+        "key": "onlyUpdateOnCorrelate",
         "type": "checkbox",
         "defaultValue": false,
         "templateOptions": {
-            "label": "Update on update",
+            "label": "Only update on correlate",
             "required": false,
-            "description": "When toggled, if the mapped data differs from data in Raet Beaufort employee, the Raet Beaufort employee will be updated when a update is triggerd"
+            "description": "When toggled, the Raet Beaufort employee will only be updated when the account is correlated"
         }
     }
 ]

@@ -156,7 +156,7 @@ function Confirm-AccessTokenIsValid {
 #endregion functions
 
 try {
-    if (($actionContext.AccountCorrelated -eq $true) -or ($actionContext.Configuration.updateOnUpdate -eq $true)) {
+    if (($actionContext.AccountCorrelated -eq $true) -or ($actionContext.Configuration.onlyUpdateOnCorrelate -eq $false)) {
               
         # Verify if [aRef] has a value
         if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
@@ -329,8 +329,8 @@ try {
         }
     }
     else {
-        Write-Verbose "No changes to Raet Beaufort employee updateOnUpdate is [$($actionContext.Configuration.updateOnUpdate)]"
         $outputContext.Success = $true
+        Write-Verbose "The configuration parameter only update on correlate is [$($actionContext.Configuration.onlyUpdateOnCorrelate)]"
     }
 }
 catch {
@@ -339,7 +339,7 @@ catch {
     $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
     Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
-    $auditMessage = "Could not update Raet Beaufort employee updateOnUpdate account. Error Message: $($errorMessage.AuditErrorMessage)"
+    $auditMessage = "Could not update Raet Beaufort employee account. Error Message: $($errorMessage.AuditErrorMessage)"
     $outputContext.AuditLogs.Add([PSCustomObject]@{
             Message = $auditMessage
             IsError = $true
