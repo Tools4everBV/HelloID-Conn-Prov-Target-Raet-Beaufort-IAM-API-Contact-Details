@@ -193,8 +193,7 @@ try {
         $ex = $PSItem
         $errorMessage = Get-ErrorMessage -ErrorObject $ex
         Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"
-
-        if ($errorMessage.AuditErrorMessage -Like "*Not Found*" -or $errorMessage.AuditErrorMessage -Like "No employee found in Raet Beaufort with $($correlationProperty) '$($correlationValue)'") {
+        if ($_.Exception.Response.StatusCode -eq 404) {
             write-verbose "No employee found in Raet Beaufort with personCode [$($actionContext.References.Account)]. Possibly already deleted."
             $correlatedAccount = $null
         }
@@ -260,13 +259,13 @@ try {
         $action = 'DeleteAccount'
     }
     else {
-        $action = 'NotFound'
+        $updateAction = 'NotFound'
         $dryRunMessage = "Raet Beaufort employee account: [$($actionContext.References.Account)] for person: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
     }
 
     # Add a message and the result of each of the validations showing what will happen during enforcement
     if ($actionContext.DryRun -eq $true) {
-        Write-Verbose "[DryRun] $dryRunMessage" -Verbose
+        Write-Information "[DryRun] $dryRunMessage"
     }
 
     # Process
@@ -310,7 +309,6 @@ try {
                 $outputContext.Data.personCode = $correlatedAccount.personCode
                 $outputContext.Success = $true
 
-                # Remove this AuditLog?
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Message = 'No changes will be made to the account during enforcement'
                         IsError = $false
