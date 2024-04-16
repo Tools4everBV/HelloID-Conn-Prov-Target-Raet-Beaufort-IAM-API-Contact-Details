@@ -4,9 +4,14 @@
 > [!IMPORTANT]
 > This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
+> [!IMPORTANT]
+> The latest version of this connector requires **new api credentials**. To get these, please follow the [Visma documentation](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059) on how to register the App and grant access to client data. 
+
 <p align="center">
   <img src="https://github.com/Tools4everBV/HelloID-Conn-Prov-Target-Raet-Beaufort-IAM-API-Contact-Details/blob/main/Logo.png?raw=true">
 </p>
+
+## Requirements
 
 ## Table of contents
 
@@ -24,6 +29,23 @@
     - [Remarks](#remarks)
   - [Getting help](#getting-help)
   - [HelloID docs](#helloid-docs)
+
+## Prerequisites
+
+- [ ] _HelloID_ Provisioning agent (cloud or on-prem).
+- [ ] _HelloID_ environment.
+- [ ] Authorized Visma Developers account in order to request and receive the API credentials in the [Visma Developer portal](https://oauth.developers.visma.com). Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
+- [ ] ClientID, ClientSecret and tenantID to authenticate with the IAM API of Raet Beaufort. Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
+- [ ] Dependent account data in HelloID.
+  - Please make your provisioned system dependent on this Users Target Connector and make sure that the values needed to be written back are stored on the account data (e.g UserPrincipalName).
+- [ ] Configured Beaufort to automatically process import.
+  - The mutations are submitted to Beaufort through the API using the fixed process code IDA. In order for the mutations to be processed automatically, a few checkboxes need to be ticked by the client. The application administrator can do this from the configuration import process screen. The green checkboxes must be ticked for process code IDA. <img src="https://github.com/Tools4everBV/HelloID-Conn-Prov-Target-Raet-Beaufort-IAM-API-Contact-Details/blob/main/Required%20config.png?raw=true">
+
+### Remarks
+
+- Currently, only the 'Business Email Address' and 'Business Phone Number' fields can be updated, no other fields are (currently) supported.
+    > When the value in Raet Beaufort equals the value in HelloID, the action will be skipped (no update will take place).
+- The endpoint operates asynchronously. The data is first stored and internally verified before being submitted to BO4. To track the processing in the API, a ticketId is returned. The ticket ID must be used to check the status of the API call. Within the API, various checks are performed. For example, it checks that the email address matches the format aaaa@bbbb.xxx. It also checks that the phone number does not contain alphanumeric values. However, it does support phone numbers like "035-1234567".
 
 ## Introduction
 
@@ -104,17 +126,6 @@ The following settings are required to connect to the API.
 | Client Secret  | The Client Secret to connect with the IAM API (created when registering the App in in the Visma Developer portal).                                               | Yes       |
 | Tenant ID      | The Tenant ID to specify to which Raet tenant to connect with the IAM API (available in the Visma Developer portal after the invitation code has been accepted). | Yes       |
 | UpdateOnUpdate | If you also want to update the user on a update account                                                                                                          |           |
-
-### Prerequisites
-> [!IMPORTANT]
-> The latest version of this connector requires **new api credentials**. To get these, please follow the [Visma documentation](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059) on how to register the App and grant access to client data.  
-- Authorized Visma Developers account in order to request and receive the API credentials in the [Visma Developer portal](https://oauth.developers.visma.com). Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
-- ClientID, ClientSecret and tenantID to authenticate with the IAM API of Raet Beaufort. Please follow the [Visma documentation on how to register the App and grant access to client data](https://community.visma.com/t5/Kennisbank-Youforce-API/Visma-Developer-portal-een-account-aanmaken-applicatie/ta-p/527059).
-
-### Remarks
-- Currently, only the 'Business Email Address' and 'Business Phone Number' fields can be updated, no other fields are (currently) supported.
-    > When the value in Raet Beaufort equals the value in HelloID, the action will be skipped (no update will take place).
-- The endpoint operates asynchronously. The data is first stored and internally verified before being submitted to BO4. To track the processing in the API, a ticketId is returned. The ticket ID must be used to check the status of the API call. Within the API, various checks are performed. For example, it checks that the email address matches the format aaaa@bbbb.xxx. It also checks that the phone number does not contain alphanumeric values. However, it does support phone numbers like "035-1234567".
 
 ## Getting help
 
