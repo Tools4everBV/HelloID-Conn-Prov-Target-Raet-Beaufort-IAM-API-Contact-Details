@@ -16,7 +16,10 @@
 ## Table of contents
 
 - [HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details](#helloid-conn-prov-target-raet-beaufort-iam-api-contact-details)
+  - [Requirements](#requirements)
   - [Table of contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+    - [Remarks](#remarks)
   - [Introduction](#introduction)
   - [Getting started](#getting-started)
     - [App within Visma](#app-within-visma)
@@ -25,8 +28,6 @@
       - [Correlation configuration](#correlation-configuration)
       - [Field mapping](#field-mapping)
     - [Connection settings](#connection-settings)
-    - [Prerequisites](#prerequisites)
-    - [Remarks](#remarks)
   - [Getting help](#getting-help)
   - [HelloID docs](#helloid-docs)
 
@@ -104,7 +105,7 @@ To properly setup the correlation:
     | ------------------------- | --------------------------------- |
     | Enable correlation        | `True`                            |
     | Person correlation field  | `PersonContext.Person.ExternalId` |
-    | Account correlation field | ``                                |
+    | Account correlation field | `personCode`                      |
 
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
