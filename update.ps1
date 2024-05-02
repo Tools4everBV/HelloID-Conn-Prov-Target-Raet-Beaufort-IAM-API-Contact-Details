@@ -164,15 +164,20 @@ function Confirm-AccessTokenIsValid {
 try {
     if (($actionContext.AccountCorrelated -eq $true) -or ($actionContext.Configuration.onlyUpdateOnCorrelate -eq $false)) {
               
+        #region account
+        # Define account object
+        $account = [PSCustomObject]$actionContext.Data
+        # Remove personCode field because only used for export data
+        $account = $account | Select-Object -ExcludeProperty personCode
+
+        # Define properties to compare for update
+        $accountPropertiesToCompare = $account.PsObject.Properties.Name
+        #endRegion account
+
+        $actionContext.References.Account = '60880'
         # Verify if [aRef] has a value
         if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
             throw 'The account reference could not be found'
-        }
-
-        $account = $actionContext.Data
-        # Remove personCode field because only used for export data
-        if ($account.PSObject.Properties.Name -Contains 'personCode') {
-            $account.PSObject.Properties.Remove('personCode')
         }
 
         $accessTokenValid = Confirm-AccessTokenIsValid
@@ -223,7 +228,6 @@ try {
                 $businessEmailAddressValue = $businessEmailAddress.address
             }
 
-            
             # Get value of current Business Phonenumber
             if ($null -ne $correlatedAccount.phoneNumbers) {
                 $businessPhoneNumber = $correlatedAccount.phoneNumbers | Where-Object { $_.type -eq "Business" }
@@ -251,49 +255,65 @@ try {
             }
 
             $splatCompareProperties = @{
-                ReferenceObject  = $previousAccount.PSObject.Properties
-                DifferenceObject = $account.PSObject.Properties
+                ReferenceObject  = $previousAccount.PSObject.Properties | Where-Object { $_.Name -in $accountPropertiesToCompare }
+                DifferenceObject = $account.PSObject.Properties | Where-Object { $_.Name -in $accountPropertiesToCompare }
             }
 
-            $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
-            if ($propertiesChanged) {
-                $action = 'UpdateAccount'
-                $dryRunMessage = "Account property(s) required to update: $($propertiesChanged.Name -join ', ')"
+            if ($null -ne $splatCompareProperties.ReferenceObject -and $null -ne $splatCompareProperties.DifferenceObject) {
+                $accountPropertiesChanged = Compare-Object @splatCompareProperties -PassThru
+                $accountOldProperties = $accountPropertiesChanged | Where-Object { $_.SideIndicator -eq "<=" }
+                $accountNewProperties = $accountPropertiesChanged | Where-Object { $_.SideIndicator -eq "=>" }
+            }
+
+            if ($accountNewProperties) {
+                $action = 'Update'
+                Write-Information "Account property(s) required to update: $($accountNewProperties.Name -join ', ')"
             }
             else {
                 $action = 'NoChanges'
-                $dryRunMessage = 'No changes will be made to the account during enforcement'
             }
         }
         else {
             $action = 'NotFound'
-            $dryRunMessage = "Raet Beaufort employee account for: [$($personContext.Person.DisplayName)] not found. Possibly deleted."
-        }
-
-        # Add a message and the result of each of the validations showing what will happen during enforcement
-        if ($actionContext.DryRun -eq $true) {
-            Write-Information "[DryRun] $dryRunMessage"
         }
 
         # Process
-        if (-not($actionContext.DryRun -eq $true)) {
-            switch ($action) {
-                'UpdateAccount' {
-                    Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
+        switch ($action) {
+            'Update' {
+                Write-Verbose "Updating Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
-                    $body = ($account | ConvertTo-Json -Depth 10)
+                # Create custom object with old and new values (for logging)
+                $accountChangedPropertiesObject = [PSCustomObject]@{
+                    OldValues = @{}
+                    NewValues = @{}
+                }
 
-                    $splatWebRequest = @{
-                        Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($actionContext.References.Account)"
-                        Headers         = $Script:AuthenticationHeaders
-                        Method          = 'POST'
-                        Body            = ([System.Text.Encoding]::UTF8.GetBytes($body))
-                        ContentType     = "application/json;charset=utf-8"
-                        UseBasicParsing = $true
-                    }
+                foreach ($accountOldProperty in ($accountOldProperties | Where-Object { $_.Name -in $accountNewProperties.Name })) {
+                    $accountChangedPropertiesObject.OldValues.$($accountOldProperty.Name) = $accountOldProperty.Value
+                }
 
+                foreach ($accountNewProperty in $accountNewProperties) {
+                    $accountChangedPropertiesObject.NewValues.$($accountNewProperty.Name) = $accountNewProperty.Value
+                }
+
+                $body = ($account | ConvertTo-Json -Depth 10)
+
+                $splatWebRequest = @{
+                    Uri             = "$($Script:BaseUri)/iam/v1.0/ContactDetails/$($actionContext.References.Account)"
+                    Headers         = $Script:AuthenticationHeaders
+                    Method          = 'POST'
+                    Body            = ([System.Text.Encoding]::UTF8.GetBytes($body))
+                    ContentType     = "application/json;charset=utf-8"
+                    UseBasicParsing = $true
+                }
+
+                if ($actionContext.DryRun -eq $true) {
+                    Write-Warning "DryRun: Would update account with AccountReference: $($actionContext.References.Account | ConvertTo-Json). Old values: $($accountChangedPropertiesObject.oldValues | ConvertTo-Json). New values: $($accountChangedPropertiesObject.newValues | ConvertTo-Json)"
+                }
+                else {
                     $updatedAccount = Invoke-RestMethod @splatWebRequest -Verbose:$false
                     $outputContext.Data.personCode = $updatedAccount.contactDetails.personCode
+
                     if ($actionContext.Data.PSObject.Properties.Name -Contains 'emailAddress') {
                         $outputContext.Data.emailAddress = $updatedAccount.contactDetails.emailAddress
                     }
@@ -303,34 +323,33 @@ try {
 
                     $outputContext.Success = $true
                     $outputContext.AuditLogs.Add([PSCustomObject]@{
-                            Action  = $action
-                            Message = "Update account was successful, Account property(s) updated: [$($propertiesChanged.name -join ',')]"
+                            Message = "Update account was successful, Account property(s) updated: Old values: $($accountChangedPropertiesObject.oldValues | ConvertTo-Json). New values: $($accountChangedPropertiesObject.newValues | ConvertTo-Json)"
                             IsError = $false
-                        })
-                    break
+                        })   
                 }
+                break
+            }
 
-                'NoChanges' {
-                    Write-Verbose "No changes to Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
+            'NoChanges' {
+                Write-Verbose "No changes to Raet Beaufort employee account with accountReference: [$($actionContext.References.Account)]"
 
-                    $outputContext.Data.personCode = $correlatedAccount.personCode
-                    $outputContext.Success = $true
+                $outputContext.Data.personCode = $correlatedAccount.personCode
+                $outputContext.Success = $true
 
-                    $outputContext.AuditLogs.Add([PSCustomObject]@{
-                            Message = 'No changes will be made to the account during enforcement'
-                            IsError = $false
-                        })
-                    break
-                }
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Message = 'No changes will be made to the account during enforcement'
+                        IsError = $false
+                    })
+                break
+            }
 
-                'NotFound' {
-                    $outputContext.Success = $false
-                    $outputContext.AuditLogs.Add([PSCustomObject]@{
-                            Message = "Raet Beaufort employee account [$($actionContext.References.Account)] for: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
-                            IsError = $true
-                        })
-                    break
-                }
+            'NotFound' {
+                $outputContext.Success = $false
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Message = "Raet Beaufort employee account [$($actionContext.References.Account)] for: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
+                        IsError = $true
+                    })
+                break
             }
         }
     }
