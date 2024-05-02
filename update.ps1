@@ -162,8 +162,7 @@ function Confirm-AccessTokenIsValid {
 #endregion functions
 
 try {
-    if (($actionContext.AccountCorrelated -eq $true) -or ($actionContext.Configuration.onlyUpdateOnCorrelate -eq $false)) {
-              
+    if (($actionContext.AccountCorrelated -eq $true) -or ($actionContext.Configuration.onlyUpdateOnCorrelate -eq $false)) {         
         #region account
         # Define account object
         $account = [PSCustomObject]$actionContext.Data
@@ -174,7 +173,6 @@ try {
         $accountPropertiesToCompare = $account.PsObject.Properties.Name
         #endRegion account
 
-        $actionContext.References.Account = '60880'
         # Verify if [aRef] has a value
         if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
             throw 'The account reference could not be found'
@@ -219,8 +217,6 @@ try {
         
         # Always compare the account against the current account in target system
         if ($null -ne $correlatedAccount.id) {
-
-            $propertiesChanged = $null
 
             # Get value of current Business Email Address
             if ($null -ne $correlatedAccount.emailAddresses) {
