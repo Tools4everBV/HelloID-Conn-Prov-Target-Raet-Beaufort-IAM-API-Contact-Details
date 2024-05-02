@@ -249,7 +249,7 @@ try {
 
         $splatCompareProperties = @{
             ReferenceObject  = $previousAccount.PSObject.Properties
-            DifferenceObject = $account
+            DifferenceObject = $account.PSObject.Properties
         }
         
         $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
