@@ -16,7 +16,10 @@
 ## Table of contents
 
 - [HelloID-Conn-Prov-Target-RAET-Beaufort-IAM-API-Contact-Details](#helloid-conn-prov-target-raet-beaufort-iam-api-contact-details)
+  - [Requirements](#requirements)
   - [Table of contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+    - [Remarks](#remarks)
   - [Introduction](#introduction)
   - [Getting started](#getting-started)
     - [App within Visma](#app-within-visma)
@@ -25,8 +28,6 @@
       - [Correlation configuration](#correlation-configuration)
       - [Field mapping](#field-mapping)
     - [Connection settings](#connection-settings)
-    - [Prerequisites](#prerequisites)
-    - [Remarks](#remarks)
   - [Getting help](#getting-help)
   - [HelloID docs](#helloid-docs)
 
@@ -104,7 +105,7 @@ To properly setup the correlation:
     | ------------------------- | --------------------------------- |
     | Enable correlation        | `True`                            |
     | Person correlation field  | `PersonContext.Person.ExternalId` |
-    | Account correlation field | ``                                |
+    | Account correlation field | `personCode`                      |
 
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
@@ -120,12 +121,12 @@ phoneNumber is not added to the _fieldMapping.json_ because it is realy used in 
 
 The following settings are required to connect to the API.
 
-| Setting        | Description                                                                                                                                                      | Mandatory |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Client ID      | The Client ID to connect with the IAM API (created when registering the App in in the Visma Developer portal).                                                   | Yes       |
-| Client Secret  | The Client Secret to connect with the IAM API (created when registering the App in in the Visma Developer portal).                                               | Yes       |
-| Tenant ID      | The Tenant ID to specify to which Raet tenant to connect with the IAM API (available in the Visma Developer portal after the invitation code has been accepted). | Yes       |
-| UpdateOnUpdate | If you also want to update the user on a update account                                                                                                          |           |
+| Setting                  | Description                                                                                                                                                      | Mandatory |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Client ID                | The Client ID to connect with the IAM API (created when registering the App in in the Visma Developer portal).                                                   | Yes       |
+| Client Secret            | The Client Secret to connect with the IAM API (created when registering the App in in the Visma Developer portal).                                               | Yes       |
+| Tenant ID                | The Tenant ID to specify to which Raet tenant to connect with the IAM API (available in the Visma Developer portal after the invitation code has been accepted). | Yes       |
+| Only update on correlate | When enabled, the Raet Beaufort employee will only be updated when the account is correlated                                                                     |           |
 
 ## Getting help
 
