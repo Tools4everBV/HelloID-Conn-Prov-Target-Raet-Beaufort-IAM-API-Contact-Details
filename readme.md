@@ -22,6 +22,7 @@
     - [Remarks](#remarks)
   - [Introduction](#introduction)
   - [Getting started](#getting-started)
+    - [HelloID Icon URL](#helloid-icon-url)
     - [App within Visma](#app-within-visma)
     - [Scope Configuration within Visma](#scope-configuration-within-visma)
     - [Provisioning PowerShell V2 connector](#provisioning-powershell-v2-connector)
@@ -68,6 +69,13 @@ The following lifecycle actions are available:
 | fieldMapping.json  | Default _fieldMapping.json_          |
 
 ## Getting started
+
+### HelloID Icon URL
+URL of the icon used for the HelloID Provisioning target system.
+
+```
+https://raw.githubusercontent.com/Tools4everBV/HelloID-Conn-Prov-Target-Raet-Beaufort-IAM-API-Contact-Details/refs/heads/main/Icon.png
+```
 
 ### App within Visma
 First an App will have to be created in the [Visma Developer portal](https://oauth.developers.visma.com). This App can then be linked to specific scopes and to a client, which will only be available after the invitation has been accepted. 
